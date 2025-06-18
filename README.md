@@ -21,7 +21,7 @@ A web-based AI chat application built for the Cloneathon competition, featuring 
    ```
 3. Set up Firebase:
    - Create a Firebase project and enable Authentication (Google, Email/Password) and Firestore.
-   - Add your Firebase config to `.env.local` (see `.env.local.example`).
+   - Add your Firebase config to `.env.local`.
 4. Set up OpenRouter:
    - Get an API key from [OpenRouter](https://openrouter.ai/) and [SerperDev](https://serper.dev/)
    - Add it to `.env.local` as `OPENROUTER_API_KEY` (optional for demo; users can provide their own key).
