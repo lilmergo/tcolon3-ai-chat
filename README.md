@@ -7,7 +7,8 @@ A web-based AI chat application built for the Cloneathon competition, featuring 
 - User authentication with Firebase (Google, Email/Password)
 - Chat history synchronization with Firestore
 - Browser-friendly interface with loading states and error handling
-- (WIP) File uploads, syntax highlighting, chat sharing, web search
+- Reasoning models, web search
+- (WIP) File uploads, chat sharing
 
 ## Setup
 1. Clone the repository:
