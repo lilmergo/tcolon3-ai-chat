@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import QueryProvider from '@/providers/QueryProvider';
-import ThemeToggle from "@/components/ui/ThemeToggle";
+// import ThemeToggle from "@/components/ui/ThemeToggle";
 import {Poppins} from 'next/font/google';
 
 const poppins = Poppins({
@@ -30,4 +30,5 @@ export default function RootLayout({
     </html>
   );
 }
+
 

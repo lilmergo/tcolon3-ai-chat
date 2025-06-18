@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         const searchResponse = await axios.request(config);
         
         // Extract only the necessary data to avoid circular references
-        const results = searchResponse.data.organic?.slice(0, 3).map((result: any) => ({
+        const results = searchResponse.data.organic?.slice(0, 3).map((result: { link: string; title: string; snippet: string }) => ({
             url: result.link,
             title: result.title,
             snippet: result.snippet,

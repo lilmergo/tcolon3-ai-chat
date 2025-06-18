@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
           `${messages[0].role}: ${messages[0].content.substring(0, 20)}...` : 
           'no messages'
       });
-      console.log('Chat API: Messages', messages);
 
       const response = await openRouterApi.post(
         '/chat/completions',
@@ -68,8 +67,6 @@ export async function POST(request: NextRequest) {
       
       const stream = new ReadableStream({
         async start(controller) {
-          console.log('Chat API: Stream started');
-          
           if (!response.data || typeof response.data.on !== 'function') {
             console.error('Chat API: Invalid response data format', {
               dataType: typeof response.data,
@@ -88,21 +85,14 @@ export async function POST(request: NextRequest) {
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';
             
-
-            let contentChunksFound = 0;
-            
             for (const line of lines) {
               if (line.trim() === '') continue;
               if (line.startsWith('data: ')) {
                 const dataContent = line.slice(6);
-                if (dataContent === '[DONE]') {
-                  continue;
-                }
                 try {
                   const data = JSON.parse(dataContent);
                   const content = data.choices?.[0]?.delta?.content || '';
                   if (content) {
-                    contentChunksFound++;
                     controller.enqueue(new TextEncoder().encode(content));
                   }
                 } catch (parseError) {
@@ -124,7 +114,6 @@ export async function POST(request: NextRequest) {
           
           // Handle end of stream
           response.data.on('end', () => {
-            console.log('Chat API: Stream ended');
             controller.close();
           });
           

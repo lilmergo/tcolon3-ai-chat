@@ -8,7 +8,6 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import type { Components } from 'react-markdown';
-import ThemeToggle from '../ui/ThemeToggle';
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -74,7 +73,11 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
     thinking?: string;
     role: string;
     timestamp: string;
-    attachments?: any[];
+    attachments?: {
+      fileName: string;
+      mimeType: string;
+      storagePath: string;
+    }[];
     isCode?: boolean;
   }>>([]); 
   const user = auth.currentUser;
@@ -254,16 +257,16 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
     pre: (props) => (
       <pre className="bg-accent text-white rounded my-2 overflow-x-auto" {...props} />
     ),
-    code: ({ className, children, ...props }: any) => {
-      const match = /language-(\w+)/.exec(className || '');
-      return !props.inline ? (
+    code: ({ children, inline, className: codeClassName, ...props }: React.HTMLAttributes<HTMLElement> & { inline?: boolean }) => {
+      const match = /language-(\w+)/.exec(codeClassName || '');
+      return !inline ? (
         <pre className={match ? `language-${match[1]}` : ''}>
-          <code className={className} {...props}>
+          <code className={codeClassName} {...props}>
             {children}
           </code>
         </pre>
       ) : (
-        <code className=" text-text rounded" {...props}>
+        <code className="text-text rounded" {...props}>
           {children}
         </code>
       );
@@ -281,7 +284,7 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
   return (
     <div ref={containerRef} onScroll={handleScroll} className="w-full flex-1 overflow-x-hidden bg-background">
       {processedMessages.length === 0 && <p className="text-center text-secondary">Start a conversation!</p>}
-      <div className="max-w-3xl mx-auto space-y-4 py-8 pb-16">
+      <div className="max-w-3xl mx-auto space-y-4 py-8 pb-18">
         {processedMessages.map((message) => (
           <div
             key={message.id}

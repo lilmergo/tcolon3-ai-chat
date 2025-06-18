@@ -12,7 +12,7 @@ import ChatInput from '@/components/chat/ChatInput';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import { ChatMessage, Chat } from '@/types/chat';
 import { encryptMessage, decryptMessage, generateEncryptionKey } from '@/lib/encryption';
-import axios from 'axios';
+// import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
@@ -173,7 +173,7 @@ export default function Home() {
 
         const encryptionKey = generateEncryptionKey(user.uid);
         const timestamp = new Date().toISOString();
-        let attachments: { storagePath: string; fileName: string; mimeType: string }[] = [];
+        const attachments: { storagePath: string; fileName: string; mimeType: string }[] = [];
         let webSearchResults: { url: string; title: string; snippet: string }[] = [];
         const isCode = content.includes('```');
 
@@ -297,17 +297,17 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [user, currentChatId, messages]
+    [user, currentChatId, messages, tempChat]
   );
 
-  const handleShareChat = async () => {
+ /* const handleShareChat = async () => {
     if (!currentChatId) return;
     const shareToken = uuidv4();
     await updateDoc(doc(db, 'chats', currentChatId), { isShared: true, shareToken });
     const shareLink = `${window.location.origin}/share/${shareToken}`;
     navigator.clipboard.writeText(shareLink);
     alert('Share link copied to clipboard!');
-  };
+  };*/
 
   const handleSelectChat = (chatId: string, tempChat?: Chat) => {
     console.log('Selecting chat:', chatId, tempChat ? '(temporary)' : '');
@@ -363,6 +363,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 
