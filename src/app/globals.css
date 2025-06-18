@@ -1,26 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --text: #141719;
+    --background: #f4f5f6;
+    --primary: #404a4f;
+    --secondary: #b2abba;
+    --accent: #826e87;
   }
+  .dark {
+    --text: #e6e9eb;
+    --background: #090a0b;
+    --primary: #b0babf;
+    --secondary: #4c4554;
+    --accent: #8c7891;
+  }
+}
+@theme {
+  --color-background: #f4f5f6;
+  --color-text: #141719;
+  --color-light: #f4f5f6;
+  --color-dark: #141719;
+  --color-primary: #404a4f;
+  --color-secondary: #b2abba;
+  --color-accent: #826e87;
+}
+
+.dark {
+  --color-background: #090a0b;
+  --color-text: #e6e9eb;
+  --color-primary: #b0babf;
+  --color-secondary: #4c4554;
+  --color-accent: #8c7891;
+  --color-light: #090a0b;
+  --color-dark: #e6e9eb;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
+
+/* Webkit browsers (Chrome, Safari, newer versions of Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Hide scrollbar buttons/arrows */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+
+/* For dark mode */
+.dark * {
+  scrollbar-color: var(--accent) transparent;
+}
+
+

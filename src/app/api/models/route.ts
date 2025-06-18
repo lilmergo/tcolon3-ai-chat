@@ -23,12 +23,34 @@ export async function GET() {
     }
 
     const response = await openRouterApi.get<OpenRouterModelResponse>('/models');
-    const models = response.data.data.map((model) => ({
+    const allModels = response.data.data.map((model) => ({
       id: model.id,
       name: model.name,
     }));
 
-    return NextResponse.json(models);
+    // Filter to include only our recommended models
+    const recommendedModelIds = [
+      'meta-llama/llama-4-maverick:free',        // Meta's newest flagship model
+      'meta-llama/llama-3.3-70b-instruct:free',  // Powerful large model from Meta
+      'qwen/qwen3-235b-a22b:free',               // Qwen's largest model
+      'deepseek/deepseek-r1:free',               // DeepSeek's flagship model
+      'google/gemma-3-27b-it:free',              // Google's largest Gemma model
+      'rekaai/reka-flash-3:free',                // Reka's latest model </reasoning>
+      'moonshotai/kimi-dev-72b:free',            // Moonshot AI's large model, reasoning ◁/think▷
+      'microsoft/phi-4-reasoning-plus:free',      // Microsoft's reasoning model <reasoning>
+    ];
+
+    // Filter models to only include recommended ones
+    const recommendedModels = allModels.filter(model =>
+      recommendedModelIds.includes(model.id)
+    );
+
+    // If we couldn't find any of our recommended models, return all free models
+    if (recommendedModels.length === 0) {
+      return NextResponse.json(allModels.filter(model => model.name.includes('(free)')));
+    }
+
+    return NextResponse.json(recommendedModels);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

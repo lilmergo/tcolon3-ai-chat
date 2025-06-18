@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from '@/providers/QueryProvider';
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import {Poppins} from 'next/font/google';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const poppins = Poppins({
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-poppins',
+}); 
 
 export const metadata: Metadata = {
-  title: 'AI Chat Cloneathon',
-  description: 'AI chat app for Cloneathon',
+  title: 'T:3 AI Chat',
+  description: 'AI chat app submission for the T3 Cloneathon.',
 };
 
 export default function RootLayout({
@@ -26,10 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${poppins.variable} antialiased bg-background text-text`}
       >
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
 }
+
