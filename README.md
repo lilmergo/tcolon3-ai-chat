@@ -1,6 +1,6 @@
-# AI Chat Cloneathon
+# T:3
 
-A web-based AI chat application built for the Cloneathon competition, featuring multi-LLM support, user authentication, chat history sync, and more.
+A web-based AI chat application originally built for the T3 Cloneathon, featuring multi-LLM support, user authentication, chat history sync, and more.
 
 ## Features
 - Chat with various LLMs via OpenRouter (BYOK supported)
@@ -66,7 +66,7 @@ See `.env.example` for all required environment variables. Key variables include
 - **Real-time Updates**: Live streaming of responses and thinking steps
 
 ## Demo
-Try the app at [https://ai-chat-cloneathon.vercel.app](https://ai-chat-cloneathon.vercel.app).
+Try the app at [https://tcolon3.vercel.app/](https://tcolon3.vercel.app/).
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.
