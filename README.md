@@ -27,7 +27,7 @@ A web-based AI chat application originally built for the T3 Cloneathon, featurin
    - Copy `.env.example` to `.env.local`
    - Fill in your configuration values
 4. Set up Firebase:
-   - Create a Firebase project and enable Authentication (Google, Email/Password), Firestore, and Storage
+   - Create a Firebase project, enable Authentication (Google, Email/Password), Firestore, and Storage
    - Download the Firebase Admin SDK service account key
    - Add your Firebase config to `.env.local`
    - Deploy Firestore rules: `firebase deploy --only firestore:rules`
