@@ -10,9 +10,10 @@ interface ChatSidebarProps {
   chats: Chat[];
   currentChatId: string | null;
   onSelectChat: (chatId: string, tempChat?: Chat) => void;
+  onOpenKnowledgeBase?: () => void;
 }
 
-export default function ChatSidebar({ chats, currentChatId, onSelectChat }: ChatSidebarProps) {
+export default function ChatSidebar({ chats, currentChatId, onSelectChat, onOpenKnowledgeBase }: ChatSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState('');
@@ -77,7 +78,7 @@ export default function ChatSidebar({ chats, currentChatId, onSelectChat }: Chat
         {/* Chat list - only show when not collapsed */}
         {!isCollapsed && (
           <div className="flex-1 min-h-0 flex flex-col -mr-4">
-            <div className="overflow-y-auto min-h-0 flex-1">
+            <div className="overflow-y-auto min-h-0 flex-1 pr-4">
               {chats.length === 0 ? (
                 <p className="text-secondary text-center p-4">No chats yet. Start a new conversation!</p>
               ) : (
@@ -101,7 +102,18 @@ export default function ChatSidebar({ chats, currentChatId, onSelectChat }: Chat
         )}
         
         {/* Bottom buttons */}
-        <div className={`mt-auto flex ${isCollapsed ? 'flex-col items-center' : 'flex-col'} gap-2`}>         
+        <div className={`mt-auto flex ${isCollapsed ? 'flex-col items-center' : 'flex-col'} gap-2`}>
+          {onOpenKnowledgeBase && (
+            <button
+              onClick={onOpenKnowledgeBase}
+              className={`w-full p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 flex items-center justify-center gap-2`}
+              title="Knowledge Base"
+            >
+              📚
+              {!isCollapsed && <span>Knowledge Base</span>}
+            </button>
+          )}
+
           <button
             onClick={() => setShowApiKeyModal(true)}
             className={`w-full p-2 bg-primary/20 text-text rounded-lg hover:opacity-80 flex items-center justify-center gap-2 ${isCollapsed ? '' : ''}`}

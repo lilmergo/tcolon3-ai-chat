@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     
     const { model, messages, apiKey }: ChatRequestBody = body;
 
-    // Set up OpenRouter API with proper error handling for API key
     const apiKeyToUse = apiKey || process.env.OPENROUTER_API_KEY;
     
     if (!apiKeyToUse) {
@@ -30,7 +29,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No API key provided' }, { status: 401 });
     }
   
-    // Create axios instance for OpenRouter
     const openRouterApi = axios.create({
       baseURL: 'https://openrouter.ai/api/v1',
       headers: {
@@ -39,21 +37,20 @@ export async function POST(request: NextRequest) {
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         'X-Title': 'AI Chat Cloneathon'
       },
-      timeout: 60000, // 60 second timeout
+      timeout: 60000,
     });
 
-    // Make request to OpenRouter with better error handling
-    console.log('Chat API: Sending request to OpenRouter', { model });
+    console.log('Chat API: Sending request to OpenRouter using model: ' + model);
     
     try {
-    
-      console.log('Chat API: Sanitized messages for OpenRouter', {
+      /*console.log('Chat API: Sanitized messages for OpenRouter', {
         messageCount: messages.length,
         firstMessagePreview: messages[0] ? 
           `${messages[0].role}: ${messages[0].content.substring(0, 20)}...` : 
           'no messages'
-      });
+      });*/
 
+      /*--Get response from OpenRouter--*/
       const response = await openRouterApi.post(
         '/chat/completions',
         { model, messages: messages, stream: true },
@@ -64,7 +61,8 @@ export async function POST(request: NextRequest) {
         status: response.status,
         headers: response.headers
       });
-      
+        
+      /*--Create a ReadableStream from the node.js stream response--*/
       const stream = new ReadableStream({
         async start(controller) {
           if (!response.data || typeof response.data.on !== 'function') {
@@ -78,7 +76,7 @@ export async function POST(request: NextRequest) {
           
           let buffer = '';
           
-          // Handle data chunks from Node.js stream
+          // Handle data chunks from stream response
           response.data.on('data', (chunk: Buffer) => {
             const chunkText = chunk.toString('utf-8');            
             buffer += chunkText;

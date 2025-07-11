@@ -10,13 +10,14 @@ import Link from 'next/link';
 import ChatMessages from '@/components/chat/ChatMessages';
 import ChatInput from '@/components/chat/ChatInput';
 import ChatSidebar from '@/components/chat/ChatSidebar';
-import { ChatMessage, Chat } from '@/types/chat';
+import KnowledgeBaseManager from '@/components/knowledge/KnowledgeBaseManager';
+import { ChatMessage, Chat, EnhancedChatMessage } from '@/types/chat';
 import { encryptMessage, decryptMessage, generateEncryptionKey } from '@/lib/encryption';
 // import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<EnhancedChatMessage[]>([]);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
@@ -24,6 +25,7 @@ export default function Home() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [tempChat, setTempChat] = useState<Chat | null>(null);
   const [model, setModel] = useState<string>();
+  const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -53,8 +55,6 @@ export default function Home() {
       };
       createOrUpdateUserProfile();
       
-      // Query chats only
-      console.log('querying chats')
       const chatsQuery = query(
         collection(db, 'chats'),
         where('participants', 'array-contains', user.uid),
@@ -62,7 +62,6 @@ export default function Home() {
       );
       
       const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
-        console.log('snapshot received chats')
         const chats: Chat[] = [];
         snapshot.forEach((doc) => chats.push({ id: doc.id, ...doc.data() } as Chat));
         
@@ -81,15 +80,13 @@ export default function Home() {
         
         // Only query messages if we have a valid currentChatId and it's not a temporary chat
         if (currentChatId && (!tempChat || tempChat.id !== currentChatId)) {
-          console.log('querying messages for chat:', currentChatId);
           const messagesQuery = query(
             collection(db, 'chats', currentChatId, 'messages'),
             orderBy('timestamp', 'asc')
           );
           
           const messagesUnsubscribe = onSnapshot(messagesQuery, (messagesSnapshot) => {
-            console.log('snapshot received messages');
-            const fetchedMessages: ChatMessage[] = [];
+            const fetchedMessages: EnhancedChatMessage[] = [];
             messagesSnapshot.forEach((doc) => {
               const data = doc.data();
               fetchedMessages.push({
@@ -101,6 +98,11 @@ export default function Home() {
                 attachments: data.attachments || [],
                 isCode: data.isCode || false,
                 webSearchResults: data.webSearchResults || [],
+                // Enhanced fields for advanced features
+                thinkingSteps: data.thinkingSteps || undefined,
+                knowledgeBaseReferences: data.knowledgeBaseReferences || undefined,
+                memoryContext: data.memoryContext || undefined,
+                processingMetadata: data.processingMetadata || undefined,
               });
             });
             setMessages(fetchedMessages);
@@ -122,9 +124,8 @@ export default function Home() {
   }, [user, currentChatId, tempChat]);
 
   const handleSendMessage = useCallback(
-    async (content: string, model: string, apiKey?: string, file?: File, enableWebSearch?: boolean) => {
+    async (content: string, model: string, apiKey?: string, file?: File, enableWebSearch?: boolean, advancedThinking?: boolean, knowledgeBaseEnabled?: boolean) => {
       setModel(model);
-      console.log('model', model);
       if (!user) return;
       setIsLoading(true);
       setError('');
@@ -243,41 +244,116 @@ export default function Home() {
             { role: 'user', content },
           ];
 
-          // Add web search results as a separate system message if available
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model,
-              messages: apiMessages,
-              apiKey,
-            }),
-          });
+          // Use advanced chat API if advanced features are enabled
+          const useAdvancedAPI = advancedThinking || knowledgeBaseEnabled;
+          const apiEndpoint = useAdvancedAPI ? '/api/chat/advanced' : '/api/chat';
+
+          let response;
+
+          if (useAdvancedAPI) {
+            // Get Firebase auth token
+            const token = await user.getIdToken();
+
+            // Use advanced chat API
+            response = await fetch(apiEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                chatId,
+                userId: user.uid,
+                message: content,
+                model,
+                apiKey,
+                advancedThinking,
+                knowledgeBaseEnabled,
+                webSearchEnabled: enableWebSearch,
+              }),
+            });
+          } else {
+            // Use regular chat API
+            response = await fetch(apiEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model,
+                messages: apiMessages,
+                apiKey,
+              }),
+            });
+          }
 
           if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
 
-          const reader = response.body?.getReader();
-          if (!reader) throw new Error('No response body');
+          if (useAdvancedAPI) {
+            // Handle advanced API streaming response
+            console.log('Frontend: Starting advanced API streaming...');
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response body');
 
-          const assistantMessageRef = await addDoc(
-            collection(db, 'chats', chatId, 'messages'),
-            {
-              role: 'assistant',
-              encryptedContent: encryptMessage('', encryptionKey),
-              timestamp: new Date().toISOString(),
-              uid: 'assistant',
+            let buffer = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                console.log('Frontend: Advanced API streaming completed');
+                break;
+              }
+
+              const chunk = new TextDecoder().decode(value);
+              console.log('Frontend: Received chunk:', chunk);
+              buffer += chunk;
+
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                if (line.trim() === '') continue;
+
+                try {
+                  const data = JSON.parse(line);
+
+                  if (data.type === 'thinking_step') {
+                    console.log('Frontend: Received thinking step:', data.step.title);
+                    // The step is already being updated in Firebase by the backend
+                    // The UI will automatically update via the Firebase listener
+                  } else if (data.type === 'final_response') {
+                    console.log('Frontend: Received final response');
+                    // Final response is also handled by the backend Firebase update
+                  }
+                } catch (parseError) {
+                  console.error('Frontend: Failed to parse streaming data:', parseError, line);
+                }
+              }
             }
-          );
+          } else {
+            // Handle regular streaming API response
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response body');
 
-          let assistantContent = '';
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = new TextDecoder().decode(value);
-            assistantContent += chunk;
-            await updateDoc(doc(db, 'chats', chatId, 'messages', assistantMessageRef.id), {
-              encryptedContent: encryptMessage(assistantContent, encryptionKey),
-            });
+            const assistantMessageRef = await addDoc(
+              collection(db, 'chats', chatId, 'messages'),
+              {
+                role: 'assistant',
+                encryptedContent: encryptMessage('', encryptionKey),
+                timestamp: new Date().toISOString(),
+                uid: 'assistant',
+              }
+            );
+
+            let assistantContent = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = new TextDecoder().decode(value);
+              console.log('new chunk:', chunk);
+              assistantContent += chunk;
+              await updateDoc(doc(db, 'chats', chatId, 'messages', assistantMessageRef.id), {
+                encryptedContent: encryptMessage(assistantContent, encryptionKey),
+              });
+            }
+            console.log('final assistant content:', assistantContent);
           }
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -310,7 +386,6 @@ export default function Home() {
   };*/
 
   const handleSelectChat = (chatId: string, tempChat?: Chat) => {
-    console.log('Selecting chat:', chatId, tempChat ? '(temporary)' : '');
     if (chatId !== currentChatId) {
       setCurrentChatId(chatId);
       // Store the temporary chat if provided
@@ -332,17 +407,29 @@ export default function Home() {
     <main className="flex min-h-screen bg-background">
       {user && (
         <>
-          <ChatSidebar 
-            chats={userChats} 
-            currentChatId={currentChatId} 
-            onSelectChat={handleSelectChat} 
+          <ChatSidebar
+            chats={userChats}
+            currentChatId={currentChatId}
+            onSelectChat={handleSelectChat}
+            onOpenKnowledgeBase={() => setShowKnowledgeBase(true)}
+          />
+
+          {/* Knowledge Base Manager Modal */}
+          <KnowledgeBaseManager
+            isOpen={showKnowledgeBase}
+            onClose={() => setShowKnowledgeBase(false)}
           />
           <div className="flex-1 flex flex-col">
             <section className="w-full h-[calc(100vh-64px)] flex flex-col items-center overflow-y-auto">
               {error && <p className="p-4 text-red-500">{error}</p>}
               {isLoading && <p className="p-4 text-secondary">Generating...</p>}
               <ChatMessages messages={messages} selectedModel={model} />
-              <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+              <ChatInput
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                chatId={currentChatId || undefined}
+                userId={user?.uid}
+              />
             </section>
           </div>
         </>

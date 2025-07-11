@@ -6,3 +6,18 @@ dist/
 build/
 .vercel
 .next/
+
+# Firebase
+*firebase-adminsdk*.json
+.firebaserc
+
+# Logs and debug files
+*.log
+bash.exe.stackdump
+pglite-debug.log
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# Test files
+test-*.js

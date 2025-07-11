@@ -7,15 +7,21 @@ import { OpenRouterModel } from '@/types/chat';
 import ThemeToggle from '../ui/ThemeToggle';
 
 interface ChatInputProps {
-  onSendMessage: (message: string, model: string, apiKey?: string, file?: File, enableWebSearch?: boolean) => void;
+  onSendMessage: (message: string, model: string, apiKey?: string, file?: File, enableWebSearch?: boolean, advancedThinking?: boolean, knowledgeBaseEnabled?: boolean) => void;
   isLoading: boolean;
+  chatId?: string;
+  userId?: string;
 }
 
-export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
+export default function ChatInput({ onSendMessage, isLoading, chatId, userId }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
   const [error, setError] = useState('');
   const [enableWebSearch, setEnableWebSearch] = useState(false);
+  const [advancedThinking, setAdvancedThinking] = useState(false);
+  const [knowledgeBaseEnabled, setKnowledgeBaseEnabled] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   const { data: models = [], error: modelError } = useQuery({
     queryKey: ['models'],
@@ -24,7 +30,6 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
       return response.data.filter((model) => model.name.includes('(free)'));
     },
   });
-  console.log('models', models);
 
   useEffect(() => {
     if (models.length > 0) setSelectedModel(models[0].id);
@@ -39,9 +44,17 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
     if (message.trim()) {
       // Get API key from localStorage if available
       const apiKey = localStorage.getItem('openrouter_api_key') || undefined;
-      onSendMessage(message, selectedModel, apiKey, undefined, enableWebSearch);
+      onSendMessage(message, selectedModel, apiKey, selectedFile || undefined, enableWebSearch, advancedThinking, knowledgeBaseEnabled);
       setMessage('');
+      setSelectedFile(null);
       setError('');
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
     }
   };
 
@@ -51,8 +64,9 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
       if (message.trim() && !isLoading) {
         // Get API key from localStorage if available
         const apiKey = localStorage.getItem('openrouter_api_key') || undefined;
-        onSendMessage(message, selectedModel, apiKey, undefined, enableWebSearch);
+        onSendMessage(message, selectedModel, apiKey, selectedFile || undefined, enableWebSearch, advancedThinking, knowledgeBaseEnabled);
         setMessage('');
+        setSelectedFile(null);
         setError('');
       }
     }
@@ -85,8 +99,22 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
         </button>
       </div>
       
-      {/* Bottom controls area with model dropdown and web search toggle */}
-      <div className="flex items-center gap-4">
+      {/* File upload area */}
+      {selectedFile && (
+        <div className="mb-2 p-2 bg-secondary/20 rounded-lg flex items-center justify-between">
+          <span className="text-sm text-text">📎 {selectedFile.name}</span>
+          <button
+            type="button"
+            onClick={() => setSelectedFile(null)}
+            className="text-red-500 hover:text-red-700 text-sm"
+          >
+            Remove
+          </button>
+        </div>
+      )}
+
+      {/* Bottom controls area */}
+      <div className="flex items-center gap-4 flex-wrap">
         <div className="w-48">
           <select
             id="model"
@@ -98,37 +126,94 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
             {models.map((model: OpenRouterModel) => {
               // Format display name: remove "(free)" and add reasoning label for thinking models
               const displayName = model.name.replace(/\s*\(free\)\s*/g, '');
-              
+
               // Check if this is a thinking model
               const isThinkingModel = [
                 'microsoft/phi-4-reasoning-plus:free',
                 'moonshotai/kimi-dev-72b:free',
                 'rekaai/reka-flash-3:free'
               ].includes(model.id);
-              
+
               // Add reasoning label for thinking models
-              const finalDisplayName = isThinkingModel 
-                ? `${displayName} (Experimental reasoning)` 
+              const finalDisplayName = isThinkingModel
+                ? `${displayName} (Experimental reasoning)`
                 : displayName;
-                
+
               return (
                 <option key={model.id} value={model.id}>{finalDisplayName}</option>
               );
             })}
           </select>
         </div>
-        
-        <label className="flex items-center gap-1 text-sm">
+
+        {/* File upload button */}
+        <label className="cursor-pointer">
           <input
-            type="checkbox"
-            checked={enableWebSearch}
-            onChange={(e) => setEnableWebSearch(e.target.checked)}
+            type="file"
+            onChange={handleFileSelect}
+            accept=".pdf,.docx,.doc,.txt,.md"
+            className="hidden"
             disabled={isLoading}
           />
-          Enable Web Search (Experimental)
+          <span className="px-3 py-1 bg-secondary text-text rounded-lg hover:bg-secondary/80 text-sm">
+            📎 Attach
+          </span>
         </label>
+
+        {/* Advanced options toggle */}
+        <button
+          type="button"
+          onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+          className="px-3 py-1 bg-accent/20 text-accent rounded-lg hover:bg-accent/30 text-sm"
+        >
+          ⚙️ Advanced
+        </button>
+
         <span className='ml-auto'><ThemeToggle /></span>
       </div>
+
+      {/* Advanced options panel */}
+      {showAdvancedOptions && (
+        <div className="mt-2 p-3 bg-secondary/10 rounded-lg border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={advancedThinking}
+                onChange={(e) => setAdvancedThinking(e.target.checked)}
+                disabled={isLoading}
+              />
+              🧠 Advanced Thinking Mode
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={knowledgeBaseEnabled}
+                onChange={(e) => setKnowledgeBaseEnabled(e.target.checked)}
+                disabled={isLoading}
+              />
+              📚 Use Knowledge Base
+            </label>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={enableWebSearch}
+                onChange={(e) => setEnableWebSearch(e.target.checked)}
+                disabled={isLoading}
+              />
+              🌐 Web Search
+            </label>
+          </div>
+
+          <div className="mt-2 text-xs text-secondary">
+            <p>• Advanced Thinking: Uses LangGraph for step-by-step reasoning</p>
+            <p>• Knowledge Base: Searches your uploaded documents</p>
+            <p>• Web Search: Finds current information online</p>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

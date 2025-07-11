@@ -1,16 +1,17 @@
-import { ChatMessage } from '@/types/chat';
+import { ChatMessage, EnhancedChatMessage, ThinkingStep, KnowledgeBaseReference } from '@/types/chat';
 import { decryptMessage, generateEncryptionKey } from '@/lib/encryption';
 import { useEffect, useRef, useState } from 'react';
 import { auth } from '@/lib/firebase';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
+import AdvancedThinkingVisualization from './AdvancedThinkingVisualization';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import type { Components } from 'react-markdown';
 
 interface ChatMessagesProps {
-  messages: ChatMessage[];
+  messages: EnhancedChatMessage[];
   selectedModel?: string; // Add this prop
 }
 
@@ -65,12 +66,68 @@ function ThinkingSection({ content }: { content: string }) {
   );
 }
 
+// Component for displaying detailed thinking steps
+function ThinkingStepsSection({ steps }: { steps: ThinkingStep[] }) {
+  if (!steps || steps.length === 0) return null;
+
+  return (
+    <div className="my-4">
+      <AdvancedThinkingVisualization
+        thinkingSteps={steps}
+        isProcessing={false}
+      />
+    </div>
+  );
+}
+
+// Component for displaying knowledge base references
+function KnowledgeBaseSection({ references }: { references: KnowledgeBaseReference[] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!references || references.length === 0) return null;
+
+  return (
+    <div className="mb-3 border-l-4 border-green-300 pl-3 bg-green-50 rounded-r-lg">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-800 mb-1"
+      >
+        <span className={`transform transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+          ▶
+        </span>
+        📚 Knowledge Base References ({references.length})
+      </button>
+
+      {isExpanded && (
+        <div className="space-y-2">
+          {references.map((ref, index) => (
+            <div key={`${ref.documentId}-${index}`} className="border-l-2 border-green-200 pl-2">
+              <div className="text-sm font-medium text-green-700">
+                {ref.documentTitle}
+              </div>
+              <div className="text-xs text-green-600">
+                Relevance: {(ref.relevanceScore * 100).toFixed(1)}%
+                {ref.pageNumber && ` • Page ${ref.pageNumber}`}
+              </div>
+              <div className="text-sm text-gray-700 mt-1">
+                {ref.excerpt}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChatMessages({ messages, selectedModel }: ChatMessagesProps) {
-  const [decryptedMessages, setDecryptedMessages] = useState<ChatMessage[]>([]);
+  const [decryptedMessages, setDecryptedMessages] = useState<EnhancedChatMessage[]>([]);
   const [processedMessages, setProcessedMessages] = useState<Array<{
     id: string;
     content: string;
     thinking?: string;
+    thinkingSteps?: ThinkingStep[];
+    knowledgeBaseReferences?: KnowledgeBaseReference[];
     role: string;
     timestamp: string;
     attachments?: {
@@ -79,7 +136,7 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
       storagePath: string;
     }[];
     isCode?: boolean;
-  }>>([]); 
+  }>>([]);
   const user = auth.currentUser;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,7 +175,6 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
         };
       }
     });
-
     setDecryptedMessages(decrypted);
   }, [messages, user]);
 
@@ -242,6 +298,8 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
         id: message.id,
         content: mainContent,
         thinking: thinkingContent || undefined,
+        thinkingSteps: message.thinkingSteps || undefined,
+        knowledgeBaseReferences: message.knowledgeBaseReferences || undefined,
         role: message.role,
         timestamp: message.timestamp,
         attachments: message.attachments,
@@ -295,7 +353,13 @@ export default function ChatMessages({ messages, selectedModel }: ChatMessagesPr
           >
             {/* Render thinking section BEFORE main content */}
             {message.thinking && <ThinkingSection content={message.thinking} />}
-            
+
+            {/* Render detailed thinking steps if available */}
+            {message.thinkingSteps && <ThinkingStepsSection steps={message.thinkingSteps} />}
+
+            {/* Render knowledge base references if available */}
+            {message.knowledgeBaseReferences && <KnowledgeBaseSection references={message.knowledgeBaseReferences} />}
+
             {/* Only render main content if it exists */}
             {message.content && (
               message.isCode ? (
